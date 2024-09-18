@@ -82,12 +82,9 @@ void DVSPano::projectPixelToCylindircal(int x, int y, float theta)
         float projectedX = map_center_(0) * (1 + atan2(X, Z) / M_PI);
         float projectedY = map_center_(1) * (1 + Y / sqrt(Z * Z + X * X));
 
-        // Unwrap the cylinder 
-        // int projectedX = r * cos(theta);
-        // int projectedY = r * sin(theta);
         if ((projectedX > 0 && projectedX < pano_size_(0) - 2) && (projectedY < pano_size_(1) -2 && projectedY > 0))
         {
-            pano_frame_.at<float>(projectedY, projectedX) = 1;
+            pano_frame_.at<float>(projectedY, projectedX) = 1.0f;
         }
         else
         {
@@ -119,18 +116,6 @@ void DVSPano::eventsCallback(const dvs_msgs::EventArray::ConstPtr &msg)
 {
     static int num_events = 0;
 
-    cv::Mat frame_ = cv::Mat::zeros(cam_.getCameraWidth(), cam_.getCameraHeight(), CV_32FC1);
-    for (int i = 0; i < event_vector_.size(); i++)
-    {
-        int x = event_vector_[i].x;
-        int y = event_vector_[i].y;
-        frame_.at<float>(x, y) = 1.0;
-    }
-    sensor_msgs::ImagePtr event_image_pub_msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", frame_).toImageMsg();
-    event_image_pub_msg->header = msg->header;
-    event_image_pub_msg->header.frame_id = "map";
-    event_packet_img_pub_.publish(event_image_pub_msg);
-
     if (!got_cam_info_)
     {
         ROS_ERROR("Received events but camera info is still missing");
@@ -146,15 +131,14 @@ void DVSPano::eventsCallback(const dvs_msgs::EventArray::ConstPtr &msg)
         if (num_events > num_of_events_per_packet_)
         {
             pano_frame_.setTo(0);
-            cv::Mat frame_ = cv::Mat::zeros(cam_.getCameraHeight(), cam_.getCameraWidth(), CV_32FC1);
             for (int i = 0; i < event_vector_.size(); i++)
             {
                 int x = event_vector_[i].x;
                 int y = event_vector_[i].y;
+                // update pano_frame_
                 projectPixelToCylindircal(x, y, 0.5);
-                frame_.at<float>(y, x) = 1;
             }
-
+            // pano_frame_.setTo(100);
             sensor_msgs::ImagePtr pano_pub_msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", pano_frame_).toImageMsg();
             pano_pub_msg->header = msg->header;
             pano_pub_msg->header.frame_id = "map";
@@ -164,4 +148,18 @@ void DVSPano::eventsCallback(const dvs_msgs::EventArray::ConstPtr &msg)
             event_vector_.clear();
         }
     }
+
+    // Publish raw event image
+    cv::Mat frame_ = cv::Mat::zeros(cam_.getCameraWidth(), cam_.getCameraHeight(), CV_32FC1);
+    for (int i = 0; i < event_vector_.size(); i++)
+    {
+        int x = event_vector_[i].x;
+        int y = event_vector_[i].y;
+        frame_.at<float>(x, y) = 1.0;
+    }
+    sensor_msgs::ImagePtr event_image_pub_msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", frame_).toImageMsg();
+    event_image_pub_msg->header = msg->header;
+    event_image_pub_msg->header.frame_id = "map";
+    event_packet_img_pub_.publish(event_image_pub_msg);
+
 }
