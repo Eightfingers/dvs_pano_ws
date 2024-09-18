@@ -1,0 +1,12 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [{
+        "name": "Debug dvs_pano",
+        "type": "ros",
+        "request": "launch",
+        "target": "/home/asdfg/ROS1/dvs_pano_ws/src/dvs_pano/launch/dvs_pano.launch"
+    }]
+}
